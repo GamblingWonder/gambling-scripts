@@ -1,1 +1,3 @@
 # gambling-scripts
+
+#Dicebot scripts
