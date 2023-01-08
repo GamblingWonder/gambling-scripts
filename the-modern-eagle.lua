@@ -38,7 +38,7 @@ display_frequency = 10 -- displays info every x bets
 ------------------------------------------------------------------------------------
 basebet_min = 0.000000001
 initial_mode = 0
-devault_vault_percentage = 10 -- percentage of the balance
+default_vault_percentage = 10 -- percentage of the balance
 ------------------------------------------------------------------------------------
 local settings = {
   [0]={
@@ -142,6 +142,8 @@ local Tn = {} --chaine lose min
 local NeedMartingaleOptimization = false
 
 local current_mode = initial_mode
+
+local total_vaulted = 0
 
 ------------------------------------------------------------------------------------
 --FUNCTIONS
@@ -369,9 +371,12 @@ local function manageGoals()
   if balance > target then
     if site.CanVault then
 
-      local vault_x = math.percentage(balance,devault_vault_percentage)
-      vault(vault_x)
+      local vault_x = math.percentage(balance,default_vault_percentage)
 
+      print("try vault_x " .. fCurrency(vault_x))
+
+      vault(vault_x)
+      total_vaulted = total_vaulted + vault_x
       balance = balance - vault_x
       bb      = balance / div -------------------base bet
       bbPreroll     = bb/2 --pre roll base bet
@@ -380,6 +385,9 @@ local function manageGoals()
 
     -- switch mode
     switchMode()
+
+    chance = chancePreroll
+    nextbet = bbPreroll
 
   end
 end
@@ -420,7 +428,7 @@ function printInfo()
   print("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
   print("# ")
   print("# [PROFIT.............. " .. fCurrency( profit) .." (balance x" ..string.format("%2.2f",((balance)/(startbank))) ..")")
-  print("# [VAULTED............. " .. fCurrency(0))
+  print("# [VAULTED............. " .. fCurrency(total_vaulted))
   print("# [Max mis en jeu...... " .. fCurrency(maxUse) .. "")
   print("# [WAGERED............. " .. fCurrency(wagered) .." (" ..string.format("%2.2f",wagered/(startbank)) .." x start balance)")
   print("# ")
