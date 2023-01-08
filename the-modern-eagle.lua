@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------------
--- THE MODERN EAGLE v1.0
+-- THE MODERN EAGLE v1.1
 ------------------------------------------------------------------------------------
 -- by winmachine, based on "The Eagle" Script from FuckingGambling.com
 ------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ ple after 4 rolls higher than 90 it follows in chance 90 and under)
 ]]--
 
 ------------------------------------------------------------------------------------
-version = 1.0
+version = 1.1
 ------------------------------------------------------------------------------------
 enablezz   = false
 enablesrc  = true
@@ -55,11 +55,12 @@ local settings = {
     bb         = 0,--balance / settings[1].div, -------------------base bet
     bbPreroll  = 0,--bb/2, --pre roll base bet
     NBM        = 95,
+    reset_seed_on_goal = true,
     next_play_mode = -1 -- -1 to random
   },
   [1]={
     name = "WAGER",
-    div = 5000, -- base unit
+    div = 7500, -- base unit
     agressivite = 5 ,
     casino     = site.Edge, --% edge house
     chancePreroll = 92, --chance to pre roll
@@ -71,11 +72,12 @@ local settings = {
     bb         = 0,--balance / settings[2].div, -------------------base bet
     bbPreroll     = 0,--bb/2, --pre roll base bet
     NBM        = 95,
+    reset_seed_on_goal = false,
     next_play_mode = -1 -- -1 to random
   },
   [2]={
     name = "CRAZY",
-    div = 2500, -- base unit
+    div = 5000, -- base unit
     agressivite = 10 ,
     casino     = site.Edge, --% edge house
     chancePreroll = 92, --chance to pre roll
@@ -87,6 +89,7 @@ local settings = {
     bb         = 0,--balance / settings[3].div, -------------------base bet
     bbPreroll     = 0,--bb/2, --pre roll base bet
     NBM        = 95,
+    reset_seed_on_goal = true,
     next_play_mode = -1 -- -1 to random, 0 - to nothing
   }
 }
@@ -108,6 +111,7 @@ local target     = 0
 local limite     = 0
 local bb         = 0
 local bbPreroll  = 0
+local reset_seed_on_goal = false
 local NBM        = 0
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
@@ -186,6 +190,7 @@ local function setMode(playMode)
   limite          = settings[playMode].limite
   bb              = balance / div
   bbPreroll       = bb/2
+  reset_seed_on_goal= settings[playMode].reset_seed_on_goal
   NBM             = settings[playMode].NBM
   next_play_mode  = settings[playMode].next_play_mode
 
@@ -383,6 +388,8 @@ local function manageGoals()
       bbDB = bb    
     end
 
+    if reset_seed_on_goal then resetseed() end
+
     -- switch mode
     switchMode()
 
@@ -413,7 +420,7 @@ function printInfo()
   print("\n\n")
   print("#######################################################################################")
   print("# ")
-  print("# (EagleBot)THE MODERN EAGLE v."..tostring(version))
+  print("# THE \"MODERN\" EAGLE v."..tostring(version))
   print("# optimized by WinMachine based on pmg version")
   print("# ")
   print("# THERE ARE NO PERFECT STRATS OR SCRIPTS WHEN GAMBLING, BE SAFE!")
@@ -435,8 +442,8 @@ function printInfo()
   --print("# [Avg profit/bet...... " ..fCurrency(profit/bets/bbDB) .." x base bet")
   print("# [Avg wag/bet......... " .. fCurrency(wagered/bets))
   print("# ")
-  print("# [PROFIT MAX.......... " ..bestID .."")
-  print("# [PERTE MAX........... " ..badID .."")
+  -- print("# [PROFIT MAX.......... " ..bestID .."")
+  -- print("# [PERTE MAX........... " ..badID .."")
   print("# ")
   print("# ####################################################################################")
   print("\n\n")
