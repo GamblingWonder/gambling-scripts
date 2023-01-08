@@ -36,6 +36,7 @@ enablesrc  = true
 debugg = false
 display_frequency = 10 -- displays info every x bets
 ------------------------------------------------------------------------------------
+basebet_min = 0.000000001
 initial_mode = 0
 devault_vault_percentage = 10 -- percentage of the balance
 ------------------------------------------------------------------------------------
@@ -394,7 +395,11 @@ function limiteSTOP(target,limite)
   end
 end
 
-
+function CheckMinBet()
+  if(nextbet<basebet_min) then 
+    nextbet=basebet_min
+  end
+end
 
 function printInfo()
   print("\n\n")
@@ -406,7 +411,7 @@ function printInfo()
   print("# THERE ARE NO PERFECT STRATS OR SCRIPTS WHEN GAMBLING, BE SAFE!")
   print("# ####################################################################################")
   print("#")
-  print("# [SETTINGS/MODE....... " .. current_mode .. "")
+  print("# [SETTINGS/MODE....... " .. current_mode .. " (" .. settings[current_mode].name .. ")")
   print("# [START BANK.......... " .. fCurrency(startbank) .. "")
   print("# [BALANCE............. " .. fCurrency(balance) .. "")
   print("# [BASEBET............. " .. fCurrency(bbDB) .. "")
@@ -466,6 +471,8 @@ setup(true)
 chance = chancePreroll
 nextbet = bbPreroll
 
+CheckMinBet()
+
 function dobet()
 
   if debugg == true then
@@ -501,5 +508,7 @@ function dobet()
   calculPrint()
 
   limiteSTOP(target,limite)
+
+  CheckMinBet()
 
 end
