@@ -36,20 +36,18 @@ enablesrc  = true
 debugg = false
 display_frequency = 10 -- displays info every x bets
 ------------------------------------------------------------------------------------
-local play_mode = {SAFE = 0, WAGER = 1,  CRAZY = 2}
-------------------------------------------------------------------------------------
-
-initial_mode = play_mode.SAFE
+initial_mode = 0
 devault_vault_percentage = 10 -- percentage of the balance
 ------------------------------------------------------------------------------------
 local settings = {
-  [play_mode.SAFE]={
+  [0]={
+    name = "safe",
     div = 10000, -- base unit
     agressivite = 2 ,
     casino     = site.Edge, --% edge house
     chancePreroll = 92, --chance to pre roll
-    maxchance  = 77,-- max chance authorized
-    minchance  = 20,--42--36 --minimum chance authorized
+    maxchance  = 85,-- max chance authorized
+    minchance  = 25,--42--36 --minimum chance authorized
     NBRchance  = 80, --number of chance analyzed
     target     = 15, -- percentage
     limite     = 0, --STOP_IF_BALANCE_UNDER
@@ -58,7 +56,8 @@ local settings = {
     NBM        = 95,
     next_play_mode = -1 -- -1 to random
   },
-  [play_mode.WAGER]={
+  [1]={
+    name = "WAGER",
     div = 5000, -- base unit
     agressivite = 5 ,
     casino     = site.Edge, --% edge house
@@ -66,22 +65,23 @@ local settings = {
     maxchance  = 65,-- max chance authorized
     minchance  = 33,--42--36 --minimum chance authorized
     NBRchance  = 80, --number of chance analyzed
-    target     = 15, -- percentage
+    target     = 10, -- percentage
     limite     = 0, --STOP_IF_BALANCE_UNDER
     bb         = 0,--balance / settings[2].div, -------------------base bet
     bbPreroll     = 0,--bb/2, --pre roll base bet
     NBM        = 95,
     next_play_mode = -1 -- -1 to random
   },
-  [play_mode.CRAZY]={
-    div = 1000, -- base unit
-    agressivite = 100 ,
+  [2]={
+    name = "CRAZY",
+    div = 2500, -- base unit
+    agressivite = 10 ,
     casino     = site.Edge, --% edge house
     chancePreroll = 92, --chance to pre roll
     maxchance  = 65,-- max chance authorized
     minchance  = 5,--42--36 --minimum chance authorized
     NBRchance  = 80, --number of chance analyzed
-    target     = 15, -- percentage
+    target     = 5, -- percentage
     limite     = 0, --STOP_IF_BALANCE_UNDER
     bb         = 0,--balance / settings[3].div, -------------------base bet
     bbPreroll     = 0,--bb/2, --pre roll base bet
@@ -406,19 +406,21 @@ function printInfo()
   print("# THERE ARE NO PERFECT STRATS OR SCRIPTS WHEN GAMBLING, BE SAFE!")
   print("# ####################################################################################")
   print("#")
-  print("# [START BANK.......... " ..fCurrency( startbank) .. "")
-  print("# [BASEBET............. " ..fCurrency( bbDB) .. "")
+  print("# [SETTINGS/MODE....... " .. current_mode .. "")
+  print("# [START BANK.......... " .. fCurrency(startbank) .. "")
+  print("# [BALANCE............. " .. fCurrency(balance) .. "")
+  print("# [BASEBET............. " .. fCurrency(bbDB) .. "")
   print("# -------------------------------------------------------------------------------------")
-  print("# [WINCHANCE........... " ..string.format("%9.8f", chance) .. "")
-  print("# [NEXTBET............. " ..fCurrency( nextbet) .." ROLL  n° " ..bets .."")
+  print("# [WINCHANCE........... " .. fPercentage(chance) .. "")
+  print("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
   print("# ")
-  print("# [PROFIT.............. " ..fCurrency( profit) .." (balance x" ..string.format("%2.2f",((balance)/(startbank))) ..")")
+  print("# [PROFIT.............. " .. fCurrency( profit) .." (balance x" ..string.format("%2.2f",((balance)/(startbank))) ..")")
   print("# [VAULTED............. " .. fCurrency(0))
-  print("# [Max mis en jeu...... " ..string.format("%9.8f", maxUse) .. "")
-  print("# [WAGERED............. " ..fCurrency( wagered) .." (" ..string.format("%2.2f",wagered/(startbank)) .." x start balance)")
+  print("# [Max mis en jeu...... " .. fCurrency(maxUse) .. "")
+  print("# [WAGERED............. " .. fCurrency(wagered) .." (" ..string.format("%2.2f",wagered/(startbank)) .." x start balance)")
   print("# ")
-  print("# [Avg profit/bet...... " ..fCurrency(profit/bets/bbDB) .." x base bet")
-  print("# [Avg wag/bet......... " ..fCurrency(wagered/bets))
+  --print("# [Avg profit/bet...... " ..fCurrency(profit/bets/bbDB) .." x base bet")
+  print("# [Avg wag/bet......... " .. fCurrency(wagered/bets))
   print("# ")
   print("# [PROFIT MAX.......... " ..bestID .."")
   print("# [PERTE MAX........... " ..badID .."")
