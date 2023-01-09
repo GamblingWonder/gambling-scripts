@@ -43,7 +43,7 @@ default_vault_percentage = 10 -- percentage of the balance
 local settings = {
   [0]={
     name = "safe",
-    div = 10000, -- base unit
+    div = 100000, -- base unit
     agressivite = 2 ,
     casino     = site.Edge, --% edge house
     chancePreroll = 92, --chance to pre roll
@@ -60,7 +60,7 @@ local settings = {
   },
   [1]={
     name = "WAGER",
-    div = 7500, -- base unit
+    div = 75000, -- base unit
     agressivite = 5 ,
     casino     = site.Edge, --% edge house
     chancePreroll = 92, --chance to pre roll
@@ -77,7 +77,7 @@ local settings = {
   },
   [2]={
     name = "CRAZY",
-    div = 5000, -- base unit
+    div = 50000, -- base unit
     agressivite = 10 ,
     casino     = site.Edge, --% edge house
     chancePreroll = 92, --chance to pre roll
