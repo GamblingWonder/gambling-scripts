@@ -1,38 +1,34 @@
 ------------------------------------------------------------------------------------
--- THE MODERN EAGLE v1.3
+-- THE MODERN EAGLE v1.4
 ------------------------------------------------------------------------------------
--- by winmachine 
--- based on "The Eagle" Script from PMG
+-- by winmachine (pd/stake/wolf/duckdice: WinMachine)
 ------------------------------------------------------------------------------------
 -- contributions:
--- 
+-- pflip
 ------------------------------------------------------------------------------------
+-- based on "The Eagle" Script from PMG
 ------------------------------------------------------------------------------------
 -- 1) Pre roll strategy that analyzes as much luck as you want and in both directions.
---  
 -- 2) Locate the rare series (example: 4 rolls above 90 in a row) you can set
 --    what type of series (the probability of series) you are looking for with the variable NBM 
 --    (example NBM = 1000 is looking for series with at least 1 chance out of 1000 to arrive)
---  
 -- 3) Following the series in the same direction and with the corresponding luck (e.g.: - 2).
 --    ple after 4 rolls higher than 90 it follows in chance 90 and under)
---
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
---
 --  FAQ:
---  
 --  agressivite:
 --     increases/decreases martingales' best minimum increase 
 --     for instance with multiplier=2 and aggressivite = 50 after every loses, wager are increase by 150%) 
--- 
 --   NBM : 
 --     probability of the series
 --     (for instance with NBM=100 we are looking for series that have 1 chance in 100 ) 
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
--- changelog by WinMachine
+-- changelog
 ------------------------------------------------------------------------------------
+-- webdicebot detection
+-- compatibility with wdb
 -- virtual balance/vault for casinos without vault feature
 -- switch settings system
 -- multiple settings feature
@@ -41,32 +37,45 @@
 ------------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------------
-version = 1.3
+local version           = 1.4
+local isWDB             = site == nil
+local edge              = 0
+local allow_vault       = false
+local debugg            = false
+local display_frequency = 10 -- displays info every x bets
 ------------------------------------------------------------------------------------
 enablezz   = false
 enablesrc  = true
 ------------------------------------------------------------------------------------
-debugg = false
-display_frequency = 10 -- displays info every x bets
-WDB	 = 0    -- WDB set to 1 of running on WebDiceBot
+
+local basebet_min              = 0.00000001
+local initial_mode             = 0
+local vault_enabled            = true
+local default_vault_percentage = 10 -- percentage of the balance
+local balance_safe_parts = 2 -- 1 = 100% of the balance or virtual balance, number of parts of the balance used for martingale optimization
+
+local stop_on_target_reached = false
+local stop_on_losse_target_reached = false -- if enabled, will use limite as max losse target
+
 ------------------------------------------------------------------------------------
-basebet_min = 0.000000001
-initial_mode = 0
-vault_enabled = true
-default_vault_percentage = 10 -- percentage of the balance
-if WDB == 1 then 
-	he  = 1    -- House edge
+-- multiple bot
+------------------------------------------------------------------------------------
+
+if isWDB then 
+  edge  = 1    -- House edge
+  allow_vault = false
 else
-	he = site.Edge
+  edge = site.Edge
+  allow_vault = site.CanVault 
 end
 
 ------------------------------------------------------------------------------------
+
 local settings = {
   [0]={
     name               = "SAFE",
     div                = 50000, -- base unit
     agressivite        = -1 ,
-    casino             = he, --% edge house
     chancePreroll      = 92, --chance to pre roll
     maxchance          = 85,-- max chance authorized
     minchance          = 10,--42--36 --minimum chance authorized
@@ -83,7 +92,6 @@ local settings = {
     name               = "WAGER",
     div                = 15000, -- base unit
     agressivite        = -10 ,
-    casino             = he, --% edge house
     chancePreroll      = 92, --chance to pre roll
     maxchance          = 65,-- max chance authorized
     minchance          = 33,--42--36 --minimum chance authorized
@@ -100,7 +108,6 @@ local settings = {
     name               = "CRAZY",
     div                = 50000, -- base unit
     agressivite        = 5 ,
-    casino             = he, --% edge house
     chancePreroll      = 92, --chance to pre roll
     maxchance          = 65,-- max chance authorized
     minchance          = 45,--42--36 --minimum chance authorized
@@ -121,25 +128,23 @@ local settings = {
 ------------------------------------------------------------------------------------
 -- this values will be overrided with the values from settings
 ------------------------------------------------------------------------------------
-local div = 0
-local agressivite = 0
-local casino     = 0
-local chancePreroll = 0
-local maxchance  = 0
-local minchance  = 0
-local NBRchance  = 0
-local target     = 0
-local limite     = 0
-local bb         = 0
-local bbPreroll  = 0
+local div                = 0
+local agressivite        = 0
+local casino             = 0
+local chancePreroll      = 0
+local maxchance          = 0
+local minchance          = 0
+local NBRchance          = 0
+local target             = 0
+local limite             = 0
+local bb                 = 0
+local bbPreroll          = 0
 local reset_seed_on_goal = false
-local NBM        = 0
+local NBM                = 0
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
-local allow_vault = false
-local startbank   = balance
-local vbalance_enabled= false
-local vbalance = 0
+local startbank        = balance
+local vbalance_enabled = false
 ------------------------------------------------------------------------------------
 local bestTOUMX   = 0 -- Memorizes the probability of the best chance
 local N           = 0
@@ -156,17 +161,16 @@ local bestID, badID, pirePERTE, bestPROFIT = 0,0,0,0
 
 local g = 0
 local x = 0
-local bbDB = 0
+local bbInitial = 0
 local inc = 0
 
-local A = 0
-local B = 0
-local Tch = {} --chance
-local TOver = {} --chaine lose over
-local TUnder = {} --chaine lose under
-local TOUMX = {}  --plus grande chaine entre over/under
-local Tsens = {} --mémorise sens de chaque chaine
-local Tn = {} --chaine lose min
+local A,B = 0,0
+local Tch    = {} -- chance
+local TOver  = {} -- chaine lose over
+local TUnder = {} -- chaine lose under
+local TOUMX  = {} -- plus grande chaine entre over/under
+local Tsens  = {} -- mémorise sens de chaque chaine
+local Tn     = {} -- chaine lose min
 
 local NeedMartingaleOptimization = false
 
@@ -177,6 +181,9 @@ local total_vaulted = 0
 ------------------------------------------------------------------------------------
 --FUNCTIONS
 ------------------------------------------------------------------------------------
+function cPrint(msg)
+  if isWDB then log(msg) else print(msg) end  
+end 
 
 function fCurrency(value)
   return string.format("%9.12f %s", value, currency)
@@ -204,32 +211,11 @@ function vBalance()
   if vbalance_enabled then return balance-total_vaulted else return balance end
 end
 
-function tell(msg)
-	if WDB == 1 then
-		log(msg)
-	else
-		print(msg)
-	end  
-end  
 ------------------------------------------------------------------------------------
-
---local vault_enabled = false
-local vault_types = { DISABLED=0,REAL=1,VIRTUAL=2} -- 1 -- 0 - disabled, 1 - real, 2 - virtual
+local vault_types = { DISABLED=0, REAL=1, VIRTUAL=2} -- 1 -- 0 - disabled, 1 - real, 2 - virtual
 local vault_type = 0
 
 local function setupInterop()
-
-  -- compatibility with other bots
-  -- vault
-
-  -- todo:
-  -- check wdb
-  if WDB == 1 then
-		allow_vault = false
-  else
-	allow_vault = site.CanVault 
-  end
-
   if allow_vault then
     vbalance_enabled = false
     vault_type = vault_types.REAL    
@@ -237,14 +223,31 @@ local function setupInterop()
     vbalance_enabled = true
     vault_type = vault_types.VIRTUAL
   end
+end
 
+local function printCurrentMode()
+  cPrint("div................ " .. div)
+  cPrint("agressivite........ " .. agressivite)
+  cPrint("casino............. " .. casino)
+  cPrint("chancePreroll...... " .. chancePreroll)
+  cPrint("maxchance.......... " .. maxchance)
+  cPrint("minchance.......... " .. minchance)
+  cPrint("NBRchance.......... " .. NBRchance)
+  cPrint("target............. " .. target)
+  cPrint("limite............. " .. limite)
+  cPrint("bb................. " .. bb)
+  cPrint("bbPreroll.......... " .. bbPreroll)
+  cPrint("reset_seed_on_goal. " .. tostring(reset_seed_on_goal))
+  cPrint("NBM................ " .. NBM)
+  cPrint("next_play_mode..... " .. next_play_mode)
+  cPrint("current_mode....... " .. current_mode)
 end
 
 local function setMode(playMode)
 
   div             = settings[playMode].div
   agressivite     = settings[playMode].agressivite
-  casino          = settings[playMode].casino
+  casino          = edge
   chancePreroll   = settings[playMode].chancePreroll
   maxchance       = settings[playMode].maxchance
   minchance       = settings[playMode].minchance
@@ -258,6 +261,10 @@ local function setMode(playMode)
   next_play_mode  = settings[playMode].next_play_mode
 
   current_mode = playMode
+
+  printCurrentMode()
+
+  setup()
 
 end
 
@@ -273,20 +280,20 @@ local function switchMode()
   end
 end
 
+local function setup()
 
-local function setup(firtRun)
+  A = minchance - ((maxchance-minchance)/(NBRchance-1))
+  B = vBalance() - limite --it's the part of the scale at stake
 
-  A = minchance-((maxchance-minchance)/(NBRchance-1))
-  B = vBalance() - limite ---it's the part of the scale at stake
-
-  for x=1, NBRchance,1 do --Remplis les table selectione les chances
-    A += (maxchance-minchance)/(NBRchance-1)
-    Tch[x] = A --chance
-    TOver[x] = 0 --chaine lose over
-    TUnder[x] = 0 --chaine lose under
-    TOUMX[x] = 0 --plus grande chaine entre over/under
-    Tn[x] = 0 --chaine lose min
-    Tsens[x] = 0 --mémorise sens de chaque chaine
+  -- Remplis les table selectione les chances
+  for x = 1, NBRchance, 1 do 
+    A         = A + (maxchance-minchance)/(NBRchance-1)
+    Tch[x]    = A -- chance
+    TOver[x]  = 0 -- chaine lose over
+    TUnder[x] = 0 -- chaine lose under
+    TOUMX[x]  = 0 -- plus grande chaine entre over/under
+    Tn[x]     = 0 -- chaine lose min
+    Tsens[x]  = 0 -- mémorise sens de chaque chaine
   end
 
 --[[ 
@@ -296,36 +303,36 @@ for x=1,NBRchance,1 do --table serie win min
 end 
 --]]
 
-  for x=1, NBRchance, 1 do --table serie lose min
+  -- table serie lose min
+  for x=1, NBRchance, 1 do 
     if Tch[x] == nil then break end
     Tn[x] = math.ceil(math.log(1/NBM) / math.log((100-Tch[x])/100))
   end
 
   x = 0
-
-  bbDB = bb
+  bbInitial = bb
 
 end
 
 function increase_adapter()
   payout = (100 - casino)/chance
-  q = ((1+(1/(payout-1)))-1)*(1+(agressivite/100))+1
-  inc = (q-1)*100
+  q      = ((1+(1/(payout-1)))-1)*(1+(agressivite/100))+1
+  inc    = (q-1)*100
 end
 
 function martingale_optimise() --optimizing the base bet to use 100% of the balance
 
   if (lastBet.profit >= 0) then -- if win
-    B = vBalance() - limite -0.00000001
-    n = math.log((B/bb)*(-1+q)+1)/math.log(q) 
-    n = math.floor(n) 
+    B       = (vBalance()/balance_safe_parts) - limite - 0.00000001
+    n       = math.log((B/bb)*(-1+q)+1)/math.log(q) 
+    n       = math.floor(n) 
     nextbet = B/((1-q^n)/(1-q)) -- bet maximum amount to cash these "n" loses
   else
     nextbet = previousbet*q
   end
 
-  tell("INCREASE= " ..inc .."%")
-  tell("MAX SERIES OF POSSIBLE LOSSES= " ..n-1 )
+  cPrint("INCREASE= " .. inc .."%")
+  cPrint("MAX SERIES OF POSSIBLE LOSSES= " .. n-1 )
 
 end
 
@@ -333,14 +340,16 @@ function reset_to_preroll()
 
   if (lastBet.profit >= 0) then -- if win then
     if bestTOUMX < Tn[indice] then
+      --return to preroll after win 
       chance = chancePreroll
       nextbet = bbPreroll
       NeedMartingaleOptimization = false
     end
-  end --return to preroll after win 
+  end 
 
 end
 
+------------------------------------------------------------------------------------
 function looking_for_series_of_win()
 
   for x=1, NBRchance,1 do
@@ -350,57 +359,57 @@ function looking_for_series_of_win()
     if lastBet.roll < Tch[x] then
       TUnder[x] = TUnder[x] + 1
     else
-      TUnder[x] =0
+      TUnder[x] = 0
     end
 
     if lastBet.roll > (100-Tch[x]-0.01) then
       TOver[x] = TOver[x] + 1
     else
-      TOver[x] =0
+      TOver[x] = 0
     end
 
     if TUnder[x] >= TOver[x] then
-      TOUMX[x]=TUnder[x]
-      Tsens[x]=false
+      TOUMX[x] = TUnder[x]
+      Tsens[x] = false
     else
-      TOUMX[x]=TOver[x]
-      Tsens[x]=true
+      TOUMX[x] = TOver[x]
+      Tsens[x] = true
     end
 
   end
 
 end
-
+------------------------------------------------------------------------------------
 function looking_for_series_of_lose()
 
   for x=1, NBRchance, 1 do
 
-    if Tch[x]==nil then break end
+    if Tch[x] == nil then break end
 
     if lastBet.roll < Tch[x] then
-      TUnder[x] =0
+      TUnder[x] = 0
     else
       TUnder[x] = TUnder[x] + 1
     end
 
     if lastBet.roll > (100-Tch[x]-0.01) then
-      TOver[x] =0
+      TOver[x] = 0
     else
       TOver[x] = TOver[x] +  1
     end
 
     if TUnder[x] >= TOver[x] then
-      TOUMX[x]=TUnder[x]
-      Tsens[x]=false
+      TOUMX[x] = TUnder[x]
+      Tsens[x] = false
     else
-      TOUMX[x]=TOver[x]
-      Tsens[x]=true
+      TOUMX[x] = TOver[x]
+      Tsens[x] = true
     end
 
   end
 
 end
-
+------------------------------------------------------------------------------------
 function selection_of_best_win_series()
   for x=1,NBRchance,1 do
     if Tch[x] == nil then break end
@@ -417,7 +426,7 @@ function selection_of_best_win_series()
     bethigh=Tsens[indice]
   end
 end
-
+------------------------------------------------------------------------------------
 function selection_of_best_lose_series()
   for x=1,NBRchance,1 do
     if Tch[x]==nil then break end
@@ -433,6 +442,7 @@ function selection_of_best_lose_series()
     bethigh=Tsens[indice]
   end
 end
+------------------------------------------------------------------------------------
 
 
 local function manageGoals()
@@ -441,25 +451,26 @@ local function manageGoals()
 
     if vault_enabled then
 
-      local vault_x = math.percentage(vBalance(),default_vault_percentage)
+      local vault_x = math.percentage( vBalance(), default_vault_percentage)
 
       if vault_type== vault_types.REAL then
-        tell("----------------------------------------------------------------")
-        tell("# try real vault.............. " .. fCurrency(vault_x))
-        tell("----------------------------------------------------------------")
+
+        cPrint("----------------------------------------------------------------")
+        cPrint("# try real vault.............. " .. fCurrency(vault_x))
+        cPrint("----------------------------------------------------------------")
+
         vault(vault_x)
         total_vaulted = total_vaulted + vault_x
-      elseif vault_type== vault_types.VIRTUAL then
-        tell("----------------------------------------------------------------")
-        tell("# try virtual vault........... " .. fCurrency(vault_x))
-        tell("----------------------------------------------------------------")
-        total_vaulted = total_vaulted + vault_x
-      end
 
-      --balance = vBalance() - vault_x
-      bb      = vBalance() / div -------------------base bet
-      bbPreroll     = bb/2 --pre roll base bet
-      bbDB = bb   
+      elseif vault_type== vault_types.VIRTUAL then
+
+        cPrint("----------------------------------------------------------------")
+        cPrint("# try virtual vault........... " .. fCurrency(vault_x))
+        cPrint("----------------------------------------------------------------")
+
+        total_vaulted = total_vaulted + vault_x
+
+      end
 
     end
 
@@ -478,11 +489,18 @@ end
 function limiteSTOP(target,limite)
   if vBalance() > target then
     printnfo()
-    tell("TARGET REACHED !!!!!!!!!!!!!!")
-  elseif  vBalance()-nextbet < limite then
+    cPrint("TARGET REACHED")
+    if stop_on_target_reached then 
+      cPrint("STOP REQUESTED")
+      stop()
+    end
+  elseif  vBalance() - nextbet < limite then
     printInfo()
-    tell("............................. USELESS ....")
-    --stop()  
+    cPrint("MAX LOSSES REACHED")
+    if stop_on_losse_target_reached then 
+      cPrint("STOP REQUESTED")
+      stop()
+    end
   end
 end
 
@@ -493,59 +511,48 @@ function CheckMinBet()
 end
 
 function printInfo()
-  tell("\n\n")
-  tell("#######################################################################################")
-  tell("# ")
-  tell("# THE \"MODERN\" EAGLE v."..tostring(version))
-  tell("# optimized by WinMachine based on pmg version")
-  tell("# ")
-  tell("# THERE ARE NO PERFECT STRATS OR SCRIPTS WHEN GAMBLING, BE SAFE!")
-  tell("# ####################################################################################")
-  tell("#")
-  tell("# [SETTINGS/MODE....... " .. current_mode .. " (" .. settings[current_mode].name .. ")")
-  tell("# [START BANK.......... " .. fCurrency(startbank) .. "")
-  tell("# [BALANCE............. " .. fCurrency(balance) .. "")
+  cPrint("\n\n")
+  cPrint("#######################################################################################")
+  cPrint("# ")
+  cPrint("# THE \"MODERN\" EAGLE v."..tostring(version))
+  cPrint("# optimized by WinMachine based on pmg version")
+  cPrint("# ")
+  cPrint("# THERE ARE NO PERFECT STRATS OR SCRIPTS WHEN GAMBLING, BE SAFE!")
+  cPrint("# ####################################################################################")
+  cPrint("#")
+  cPrint("# [SETTINGS/MODE....... " .. current_mode .. " (" .. settings[current_mode].name .. ")")
+  cPrint("# [START BANK.......... " .. fCurrency(startbank) .. "")
+  cPrint("# [BALANCE............. " .. fCurrency(balance) .. "")
 
   if vbalance_enabled then
-    tell("# [VIRTUAL BALANCE..... " .. fCurrency(vBalance()) .. "")
-    tell("# [VIRTUAL VAULTED..... " .. fCurrency(total_vaulted))
+    cPrint("# [VIRTUAL BALANCE..... " .. fCurrency(vBalance()) .. "")
+    cPrint("# [VIRTUAL VAULTED..... " .. fCurrency(total_vaulted))
   else
-    tell("# [VAULTED............. " .. fCurrency(total_vaulted))
+    cPrint("# [VAULTED............. " .. fCurrency(total_vaulted))
   end
 
-  tell("# [TARGET.............. " .. fCurrency(target) .. "")
-  tell("# [LEFT TO TARGET...... " .. fCurrency(target-vBalance()) .. "")
-  tell("# ")
-  tell("# -------------------------------------------------------------------------------------")
-  tell("# [BASEBET............. " .. fCurrency(bbDB) .. "")
-  tell("# [WINCHANCE........... " .. fPercentage(chance) .. "")
-  tell("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
-  tell("# -------------------------------------------------------------------------------------")
-  tell("# ")
-  tell("# [PROFIT.............. " .. fCurrency( profit) .." (balance x" ..string.format("%2.2f",((vBalance())/(startbank))) ..")")
-  tell("# [MAX BET PLACED...... " .. fCurrency(maxUse) .. "")
-  if WDB == 0  then 
-	tell("# [WAGERED............. " .. fCurrency(wagered) .." (" ..string.format("%2.2f",wagered/(startbank)) .." x start balance)")
-  end
-  tell("# ")
-  --tell("# [Avg profit/bet...... " ..fCurrency(profit/bets/bbDB) .." x base bet")
-  if WDB == 0 then
-	tell("# [AVERAGE WAGER/BETS.. " .. fCurrency(wagered/bets))
-  end
-  tell("# ")
-  -- tell("# [PROFIT MAX.......... " ..bestID .."")
-  -- tell("# [PERTE MAX........... " ..badID .."")
-  --tell("# ")
-  tell("# ####################################################################################")
-  tell("\n\n")
+  cPrint("# [TARGET.............. " .. fCurrency(target) .. "")
+  cPrint("# [LEFT TO TARGET...... " .. fCurrency(target-vBalance()) .. "")
+  cPrint("# ")
+  cPrint("# -------------------------------------------------------------------------------------")
+  cPrint("# [BASEBET............. " .. fCurrency(bbInitial) .. "")
+  cPrint("# [WINCHANCE........... " .. fPercentage(chance) .. "")
+  cPrint("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
+  cPrint("# -------------------------------------------------------------------------------------")
+  cPrint("# ")
+  cPrint("# [PROFIT.............. " .. fCurrency( profit) .." (balance x" ..string.format("%2.2f",((vBalance())/(startbank))) ..")")
+  cPrint("# [MAX BET PLACED...... " .. fCurrency(maxUse) .. "")
+  cPrint("# ")
+  cPrint("# ####################################################################################")
+  cPrint("\n\n")
 end
 
 function calculPrint()
 
   if p == true then
-    tell(chance)
-    tell(nextbet)
-    tell(coef)
+    cPrint(chance)
+    cPrint(nextbet)
+    cPrint(coef)
   end
 
   perteP = perteP + currentprofit
@@ -569,16 +576,18 @@ function calculPrint()
   end
 
 end
---_______________________________________________________________________
+
+------------------------------------------------------------------------------------
 
 setupInterop()
 setMode(initial_mode)
-setup(true)
 
 chance = chancePreroll
 nextbet = bbPreroll
 
 CheckMinBet()
+
+------------------------------------------------------------------------------------
 
 function dobet()
 
@@ -587,14 +596,14 @@ function dobet()
     if bethigh == true then sens24 = "over" else sens24 = "under" end
     if win then gain24 = " win" else gain24 = "lose" end
 
-    tell("================================")
-    tell("=[Amount" .."  ][  " .."sens" .."    ][  " .."Chance" .."  ][  " .."gain]=")
-    tell("=[" ..string.format("%9.2f",previousbet) .."  ][  " ..sens24 .."  ][  "..string.format("%1.2f",chance).."      ][  "..gain24 .." ]=")
-    tell("================================")
+    cPrint("================================")
+    cPrint("=[Amount" .."  ][  " .."sens" .."    ][  " .."Chance" .."  ][  " .."gain]=")
+    cPrint("=[" ..string.format("%9.2f",previousbet) .."  ][  " ..sens24 .."  ][  "..string.format("%1.2f",chance).."      ][  "..gain24 .." ]=")
+    cPrint("================================")
 
   end
 
-  pr = pr +currentprofit
+  pr = pr + currentprofit
 
   manageGoals()
 
