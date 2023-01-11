@@ -249,7 +249,7 @@ local function setMode(playMode)
   maxchance       = settings[playMode].maxchance
   minchance       = settings[playMode].minchance
   NBRchance       = settings[playMode].NBRchance
-  target          = math.includePercentage(balance, settings[playMode].target)
+  target          = math.includePercentage(vBalance(), settings[playMode].target)
   limite          = settings[playMode].limite
   bb              = vBalance() / div
   bbPreroll       = bb/2
