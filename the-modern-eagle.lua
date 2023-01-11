@@ -60,7 +60,7 @@ local settings = {
   },
   [1]={
     name               = "WAGER",
-    div                = 5000, -- base unit
+    div                = 15000, -- base unit
     agressivite        = -10 ,
     casino             = site.Edge, --% edge house
     chancePreroll      = 92, --chance to pre roll
@@ -78,7 +78,7 @@ local settings = {
   [2]={
     name               = "CRAZY",
     div                = 50000, -- base unit
-    agressivite        = 10 ,
+    agressivite        = 5 ,
     casino             = site.Edge, --% edge house
     chancePreroll      = 92, --chance to pre roll
     maxchance          = 65,-- max chance authorized
