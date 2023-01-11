@@ -1,49 +1,65 @@
 ------------------------------------------------------------------------------------
--- THE MODERN EAGLE v1.2
+-- THE MODERN EAGLE v1.3
 ------------------------------------------------------------------------------------
--- by winmachine, based on "The Eagle" Script from FuckingGambling.com
+-- by winmachine 
+-- based on "The Eagle" Script from PMG
 ------------------------------------------------------------------------------------
--- adapted to WebDicebot by pflip
+-- contributions:
+-- 
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
+-- 1) Pre roll strategy that analyzes as much luck as you want and in both directions.
+--  
+-- 2) Locate the rare series (example: 4 rolls above 90 in a row) you can set
+--    what type of series (the probability of series) you are looking for with the variable NBM 
+--    (example NBM = 1000 is looking for series with at least 1 chance out of 1000 to arrive)
+--  
+-- 3) Following the series in the same direction and with the corresponding luck (e.g.: - 2).
+--    ple after 4 rolls higher than 90 it follows in chance 90 and under)
+--
+------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
+--
+--  FAQ:
+--  
+--  agressivite:
+--     increases/decreases martingales' best minimum increase 
+--     for instance with multiplier=2 and aggressivite = 50 after every loses, wager are increase by 150%) 
+-- 
+--   NBM : 
+--     probability of the series
+--     (for instance with NBM=100 we are looking for series that have 1 chance in 100 ) 
+------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
+-- changelog by WinMachine
+------------------------------------------------------------------------------------
+-- virtual balance/vault for casinos without vault feature
+-- switch settings system
+-- multiple settings feature
+-- vault feature
+-- settings values optimizations for more safest possible
 ------------------------------------------------------------------------------------
 
---[[
--- Introducing "The Eagle" Script for DiceBot from FuckingGambling.com 
-1) Pre roll strategy that analyzes as much luck as you want and in both directions.
- 
-2) Locate the rare series (example: 4 rolls above 90 in a row) you can set
-what type of series (the probability of series) you are looking for with the variable NBM (example
-NBM = 1000 is looking for series with at least 1 chance out of 1000 to arrive)
- 
-3) Following the series in the same direction and with the corresponding luck (e.g.: - 2).
-ple after 4 rolls higher than 90 it follows in chance 90 and under)
- 
- FAQ:
- 
- agressivite:
-    increases/decreases martingales' best minimum increase 
-    for instance with multiplier=2 and aggressivite = 50 after every loses, wager are increase by 150%) 
-
-  NBM : 
-    probability of the series
-    (for instance with NBM=100 we are looking for series that have 1 chance in 100 ) 
-
-]]--
-
 ------------------------------------------------------------------------------------
-version = 1.2
+version = 1.3
 ------------------------------------------------------------------------------------
 enablezz   = false
 enablesrc  = true
 ------------------------------------------------------------------------------------
 debugg = false
 display_frequency = 10 -- displays info every x bets
+WDB	 = 0    -- WDB set to 1 of running on WebDiceBot
 ------------------------------------------------------------------------------------
 basebet_min = 0.000000001
 initial_mode = 0
+vault_enabled = true
 default_vault_percentage = 10 -- percentage of the balance
-he = 1    -- House edge
+if WDB == 1 then 
+	he  = 1    -- House edge
+else
+	he = site.Edge
+end
+
 ------------------------------------------------------------------------------------
 local settings = {
   [0]={
@@ -99,6 +115,7 @@ local settings = {
   }
 }
 ------------------------------------------------------------------------------------
+
 ------------------------------------------------------------------------------------
 -- INTERNAL VARIABLES
 ------------------------------------------------------------------------------------
@@ -119,7 +136,11 @@ local reset_seed_on_goal = false
 local NBM        = 0
 ------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------
+local allow_vault = false
 local startbank   = balance
+local vbalance_enabled= false
+local vbalance = 0
+------------------------------------------------------------------------------------
 local bestTOUMX   = 0 -- Memorizes the probability of the best chance
 local N           = 0
 local n           = 1
@@ -158,7 +179,7 @@ local total_vaulted = 0
 ------------------------------------------------------------------------------------
 
 function fCurrency(value)
-  return string.format("%9.8f %s", value, currency)
+  return string.format("%9.12f %s", value, currency)
 end
 
 function fPercentage(value)
@@ -179,7 +200,45 @@ function math.includePercentage(value, percentage)
   return 0
 end
 
+function vBalance()
+  if vbalance_enabled then return balance-total_vaulted else return balance end
+end
+
+function tell(msg)
+	if WDB == 1 then
+		log(msg)
+	else
+		print(msg)
+	end  
+end  
 ------------------------------------------------------------------------------------
+
+--local vault_enabled = false
+local vault_types = { DISABLED=0,REAL=1,VIRTUAL=2} -- 1 -- 0 - disabled, 1 - real, 2 - virtual
+local vault_type = 0
+
+local function setupInterop()
+
+  -- compatibility with other bots
+  -- vault
+
+  -- todo:
+  -- check wdb
+  if WDB == 1 then
+		allow_vault = false
+  else
+	allow_vault = site.CanVault 
+  end
+
+  if allow_vault then
+    vbalance_enabled = false
+    vault_type = vault_types.REAL    
+  else
+    vbalance_enabled = true
+    vault_type = vault_types.VIRTUAL
+  end
+
+end
 
 local function setMode(playMode)
 
@@ -192,7 +251,7 @@ local function setMode(playMode)
   NBRchance       = settings[playMode].NBRchance
   target          = math.includePercentage(balance, settings[playMode].target)
   limite          = settings[playMode].limite
-  bb              = balance / div
+  bb              = vBalance() / div
   bbPreroll       = bb/2
   reset_seed_on_goal= settings[playMode].reset_seed_on_goal
   NBM             = settings[playMode].NBM
@@ -203,7 +262,6 @@ local function setMode(playMode)
 end
 
 local function switchMode()
-
   if(next_play_mode < 0) then
     local randomModeIndex = 0
     repeat
@@ -219,10 +277,10 @@ end
 local function setup(firtRun)
 
   A = minchance-((maxchance-minchance)/(NBRchance-1))
-  B = balance - limite ---it's the part of the scale at stake
+  B = vBalance() - limite ---it's the part of the scale at stake
 
   for x=1, NBRchance,1 do --Remplis les table selectione les chances
-    A = A +(maxchance-minchance)/(NBRchance-1)
+    A += (maxchance-minchance)/(NBRchance-1)
     Tch[x] = A --chance
     TOver[x] = 0 --chaine lose over
     TUnder[x] = 0 --chaine lose under
@@ -258,27 +316,25 @@ end
 function martingale_optimise() --optimizing the base bet to use 100% of the balance
 
   if (lastBet.profit >= 0) then -- if win
-    B = balance-limite-0.00000001
+    B = vBalance() - limite -0.00000001
     n = math.log((B/bb)*(-1+q)+1)/math.log(q) 
     n = math.floor(n) 
     nextbet = B/((1-q^n)/(1-q)) -- bet maximum amount to cash these "n" loses
   else
     nextbet = previousbet*q
   end
- if p == true then
-  log("INCREASE= " ..inc .."%")
-  log("MAX SERIES OF POSSIBLE LOSSES= " ..n-1 )
- end
+
+  tell("INCREASE= " ..inc .."%")
+  tell("MAX SERIES OF POSSIBLE LOSSES= " ..n-1 )
+
 end
 
 function reset_to_preroll()
 
   if (lastBet.profit >= 0) then -- if win then
-
     if bestTOUMX < Tn[indice] then
       chance = chancePreroll
       nextbet = bbPreroll
-	  CheckMinBet()
       NeedMartingaleOptimization = false
     end
   end --return to preroll after win 
@@ -286,7 +342,6 @@ function reset_to_preroll()
 end
 
 function looking_for_series_of_win()
-
 
   for x=1, NBRchance,1 do
 
@@ -331,7 +386,7 @@ function looking_for_series_of_lose()
     if lastBet.roll > (100-Tch[x]-0.01) then
       TOver[x] =0
     else
-      TOver[x] = TOver[x] + 1
+      TOver[x] = TOver[x] +  1
     end
 
     if TUnder[x] >= TOver[x] then
@@ -381,24 +436,34 @@ end
 
 
 local function manageGoals()
-  if balance > target then
-  
-  --[[
-    if site.CanVault then
 
-      local vault_x = math.percentage(balance,default_vault_percentage)
+  if vBalance() > target then
 
-      print("try vault_x " .. fCurrency(vault_x))
+    if vault_enabled then
 
-      vault(vault_x)
-      total_vaulted = total_vaulted + vault_x
-      balance = balance - vault_x
-      bb      = balance / div -------------------base bet
+      local vault_x = math.percentage(vBalance(),default_vault_percentage)
+
+      if vault_type== vault_types.REAL then
+        tell("----------------------------------------------------------------")
+        tell("# try real vault.............. " .. fCurrency(vault_x))
+        tell("----------------------------------------------------------------")
+        vault(vault_x)
+        total_vaulted = total_vaulted + vault_x
+      elseif vault_type== vault_types.VIRTUAL then
+        tell("----------------------------------------------------------------")
+        tell("# try virtual vault........... " .. fCurrency(vault_x))
+        tell("----------------------------------------------------------------")
+        total_vaulted = total_vaulted + vault_x
+      end
+
+      --balance = vBalance() - vault_x
+      bb      = vBalance() / div -------------------base bet
       bbPreroll     = bb/2 --pre roll base bet
-      bbDB = bb    
-    end
-  --]]
+      bbDB = bb   
 
+    end
+
+    -- reset seed
     if reset_seed_on_goal then resetseed() end
 
     -- switch mode
@@ -411,12 +476,12 @@ local function manageGoals()
 end
 
 function limiteSTOP(target,limite)
-  if balance > target then
+  if vBalance() > target then
+    printnfo()
+    tell("TARGET REACHED !!!!!!!!!!!!!!")
+  elseif  vBalance()-nextbet < limite then
     printInfo()
-    log("TARGET REACHED !!!!!!!!!!!!!!")
-  elseif  balance-nextbet < limite then
-    printInfo()
-    log("............................. USELESS ....")
+    tell("............................. USELESS ....")
     --stop()  
   end
 end
@@ -428,45 +493,59 @@ function CheckMinBet()
 end
 
 function printInfo()
-  log("\n\n")
-  log("#######################################################################################")
-  log("# ")
-  log("# THE \"MODERN\" EAGLE v."..tostring(version))
-  log("# optimized by WinMachine based on pmg version")
-  log("# ")
-  log("# THERE ARE NO PERFECT STRATS OR SCRIPTS WHEN GAMBLING, BE SAFE")
-  log("# ####################################################################################")
-  log("#")
-  log("# [SETTINGS/MODE....... " .. current_mode .. " (" .. settings[current_mode].name .. ")")
-  log("# [START BANK.......... " .. fCurrency(startbank) .. "")
-  log("# [BALANCE............. " .. fCurrency(balance) .. "")
-  log("# [BASEBET............. " .. fCurrency(bbDB) .. "")
-  print("# [TARGET.............. " .. fCurrency(target) .. "")
-  log("# -------------------------------------------------------------------------------------")
-  log("# [WINCHANCE........... " .. fPercentage(chance) .. "")
-  log("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
-  log("# ")
-  log("# [PROFIT.............. " .. fCurrency( profit) .." (balance x" ..string.format("%2.2f",((balance)/(startbank))) ..")")
-  log("# [VAULTED............. " .. fCurrency(total_vaulted))
-  log("# [Max bet placed...... " .. fCurrency(maxUse) .. "")
---  log("# [WAGERED............. " .. fCurrency(wagered) .." (" ..string.format("%2.2f",wagered/(startbank)) .." x start balance)")
-  log("# ")
-  --log("# [Avg profit/bet...... " ..fCurrency(profit/bets/bbDB) .." x base bet")
---  log("# [Avg wag/bet......... " .. fCurrency(wagered/bets))
-  log("# ")
-  -- log("# [PROFIT MAX.......... " ..bestID .."")
-  -- log("# [PERTE MAX........... " ..badID .."")
-  log("# ")
-  log("# ####################################################################################")
-  log("\n\n")
+  tell("\n\n")
+  tell("#######################################################################################")
+  tell("# ")
+  tell("# THE \"MODERN\" EAGLE v."..tostring(version))
+  tell("# optimized by WinMachine based on pmg version")
+  tell("# ")
+  tell("# THERE ARE NO PERFECT STRATS OR SCRIPTS WHEN GAMBLING, BE SAFE!")
+  tell("# ####################################################################################")
+  tell("#")
+  tell("# [SETTINGS/MODE....... " .. current_mode .. " (" .. settings[current_mode].name .. ")")
+  tell("# [START BANK.......... " .. fCurrency(startbank) .. "")
+  tell("# [BALANCE............. " .. fCurrency(balance) .. "")
+
+  if vbalance_enabled then
+    tell("# [VIRTUAL BALANCE..... " .. fCurrency(vBalance()) .. "")
+    tell("# [VIRTUAL VAULTED..... " .. fCurrency(total_vaulted))
+  else
+    tell("# [VAULTED............. " .. fCurrency(total_vaulted))
+  end
+
+  tell("# [TARGET.............. " .. fCurrency(target) .. "")
+  tell("# [LEFT TO TARGET...... " .. fCurrency(target-vBalance()) .. "")
+  tell("# ")
+  tell("# -------------------------------------------------------------------------------------")
+  tell("# [BASEBET............. " .. fCurrency(bbDB) .. "")
+  tell("# [WINCHANCE........... " .. fPercentage(chance) .. "")
+  tell("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
+  tell("# -------------------------------------------------------------------------------------")
+  tell("# ")
+  tell("# [PROFIT.............. " .. fCurrency( profit) .." (balance x" ..string.format("%2.2f",((vBalance())/(startbank))) ..")")
+  tell("# [MAX BET PLACED...... " .. fCurrency(maxUse) .. "")
+  if WDB == 0  then 
+	tell("# [WAGERED............. " .. fCurrency(wagered) .." (" ..string.format("%2.2f",wagered/(startbank)) .." x start balance)")
+  end
+  tell("# ")
+  --tell("# [Avg profit/bet...... " ..fCurrency(profit/bets/bbDB) .." x base bet")
+  if WDB == 0 then
+	tell("# [AVERAGE WAGER/BETS.. " .. fCurrency(wagered/bets))
+  end
+  tell("# ")
+  -- tell("# [PROFIT MAX.......... " ..bestID .."")
+  -- tell("# [PERTE MAX........... " ..badID .."")
+  --tell("# ")
+  tell("# ####################################################################################")
+  tell("\n\n")
 end
 
 function calculPrint()
 
   if p == true then
-    log(chance)
-    log(nextbet)
-    log(coef)
+    tell(chance)
+    tell(nextbet)
+    tell(coef)
   end
 
   perteP = perteP + currentprofit
@@ -492,6 +571,7 @@ function calculPrint()
 end
 --_______________________________________________________________________
 
+setupInterop()
 setMode(initial_mode)
 setup(true)
 
@@ -507,14 +587,14 @@ function dobet()
     if bethigh == true then sens24 = "over" else sens24 = "under" end
     if win then gain24 = " win" else gain24 = "lose" end
 
-    log("================================")
-    log("=[Amount" .."  ][  " .."sens" .."    ][  " .."Chance" .."  ][  " .."gain]=")
-    log("=[" ..string.format("%9.2f",previousbet) .."  ][  " ..sens24 .."  ][  "..string.format("%1.2f",chance).."      ][  "..gain24 .." ]=")
-    log("================================")
+    tell("================================")
+    tell("=[Amount" .."  ][  " .."sens" .."    ][  " .."Chance" .."  ][  " .."gain]=")
+    tell("=[" ..string.format("%9.2f",previousbet) .."  ][  " ..sens24 .."  ][  "..string.format("%1.2f",chance).."      ][  "..gain24 .." ]=")
+    tell("================================")
 
   end
 
-  pr = pr + currentprofit
+  pr = pr +currentprofit
 
   manageGoals()
 
@@ -528,7 +608,6 @@ function dobet()
   reset_to_preroll()
 
   if NeedMartingaleOptimization == true then
-
     increase_adapter()
     martingale_optimise()
   end
