@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------------
--- THE MODERN EAGLE v1.1
+-- THE MODERN EAGLE v1.2
 ------------------------------------------------------------------------------------
 -- by winmachine, based on "The Eagle" Script from FuckingGambling.com
 ------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ ple after 4 rolls higher than 90 it follows in chance 90 and under)
 ]]--
 
 ------------------------------------------------------------------------------------
-version = 1.1
+version = 1.2
 ------------------------------------------------------------------------------------
 enablezz   = false
 enablesrc  = true
@@ -77,7 +77,7 @@ local settings = {
   },
   [2]={
     name               = "CRAZY",
-    div                = 10000, -- base unit
+    div                = 50000, -- base unit
     agressivite        = 10 ,
     casino             = site.Edge, --% edge house
     chancePreroll      = 92, --chance to pre roll
@@ -430,13 +430,14 @@ function printInfo()
   print("# [START BANK.......... " .. fCurrency(startbank) .. "")
   print("# [BALANCE............. " .. fCurrency(balance) .. "")
   print("# [BASEBET............. " .. fCurrency(bbDB) .. "")
+  print("# [TARGET.............. " .. fCurrency(target) .. "")
   print("# -------------------------------------------------------------------------------------")
   print("# [WINCHANCE........... " .. fPercentage(chance) .. "")
   print("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
   print("# ")
   print("# [PROFIT.............. " .. fCurrency( profit) .." (balance x" ..string.format("%2.2f",((balance)/(startbank))) ..")")
   print("# [VAULTED............. " .. fCurrency(total_vaulted))
-  print("# [Max mis en jeu...... " .. fCurrency(maxUse) .. "")
+  print("# [Max bet placed...... " .. fCurrency(maxUse) .. "")
   print("# [WAGERED............. " .. fCurrency(wagered) .." (" ..string.format("%2.2f",wagered/(startbank)) .." x start balance)")
   print("# ")
   --print("# [Avg profit/bet...... " ..fCurrency(profit/bets/bbDB) .." x base bet")

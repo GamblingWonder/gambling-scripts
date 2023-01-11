@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------------------
--- THE MODERN EAGLE v1.1
+-- THE MODERN EAGLE v1.2
 ------------------------------------------------------------------------------------
 -- by winmachine, based on "The Eagle" Script from FuckingGambling.com
 ------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ ple after 4 rolls higher than 90 it follows in chance 90 and under)
 ]]--
 
 ------------------------------------------------------------------------------------
-version = 1.1
+version = 1.2
 ------------------------------------------------------------------------------------
 enablezz   = false
 enablesrc  = true
@@ -82,7 +82,7 @@ local settings = {
   },
   [2]={
     name               = "CRAZY",
-    div                = 10000, -- base unit
+    div                = 50000, -- base unit
     agressivite        = 10 ,
     casino             = he,  -- site.Edge, --% edge house
     chancePreroll      = 92, --chance to pre roll
@@ -441,6 +441,7 @@ function printInfo()
   log("# [START BANK.......... " .. fCurrency(startbank) .. "")
   log("# [BALANCE............. " .. fCurrency(balance) .. "")
   log("# [BASEBET............. " .. fCurrency(bbDB) .. "")
+  print("# [TARGET.............. " .. fCurrency(target) .. "")
   log("# -------------------------------------------------------------------------------------")
   log("# [WINCHANCE........... " .. fPercentage(chance) .. "")
   log("# [NEXTBET............. " .. fCurrency(nextbet) .." ROLL  n° " ..bets .."")
