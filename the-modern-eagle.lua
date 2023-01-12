@@ -62,7 +62,7 @@ local stop_on_losse_target_reached = false -- if enabled, will use limite as max
 ------------------------------------------------------------------------------------
 -- for run on WebDiceBot isWDB must be true, otherwise it should be false
 
-local isWDB             = true
+local isWDB             = false
 if isWDB then 
   edge  = 1    -- House edge
   allow_vault = false
