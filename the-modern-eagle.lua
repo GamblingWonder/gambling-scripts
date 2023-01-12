@@ -76,8 +76,8 @@ end
 local settings = {
   [0]={
     name               = "SAFE",
-    div                = 50000, -- base unit
-    agressivite        = -1 ,
+    div                = 100000, -- base unit
+    agressivite        = -5 ,
     chancePreroll      = 92, --chance to pre roll
     maxchance          = 85,-- max chance authorized
     minchance          = 10,--42--36 --minimum chance authorized
@@ -92,7 +92,7 @@ local settings = {
   },
   [1]={
     name               = "WAGER",
-    div                = 15000, -- base unit
+    div                = 75000, -- base unit
     agressivite        = -10 ,
     chancePreroll      = 92, --chance to pre roll
     maxchance          = 65,-- max chance authorized
@@ -108,13 +108,13 @@ local settings = {
   },
   [2]={
     name               = "CRAZY",
-    div                = 50000, -- base unit
-    agressivite        = 5 ,
+    div                = 100000, -- base unit
+    agressivite        = 1 ,
     chancePreroll      = 92, --chance to pre roll
     maxchance          = 65,-- max chance authorized
     minchance          = 45,--42--36 --minimum chance authorized
     NBRchance          = 80, --number of chance analyzed
-    target             = 5, -- percentage
+    target             = 1, -- percentage
     limite             = 0, --STOP_IF_BALANCE_UNDER
     bb                 = 0,--balance / settings[3].div, -------------------base bet
     bbPreroll          = 0,--bb/2, --pre roll base bet
