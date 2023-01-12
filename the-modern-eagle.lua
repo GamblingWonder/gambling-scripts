@@ -38,7 +38,7 @@
 
 ------------------------------------------------------------------------------------
 local version           = 1.4
-local isWDB             = site == nil
+
 local edge              = 0
 local allow_vault       = false
 local debugg            = false
@@ -60,7 +60,9 @@ local stop_on_losse_target_reached = false -- if enabled, will use limite as max
 ------------------------------------------------------------------------------------
 -- multiple bot
 ------------------------------------------------------------------------------------
+-- for run on WebDiceBot isWDB must be true, otherwise it should be false
 
+local isWDB             = true
 if isWDB then 
   edge  = 1    -- House edge
   allow_vault = false
