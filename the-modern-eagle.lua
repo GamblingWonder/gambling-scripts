@@ -245,6 +245,40 @@ local function printCurrentMode()
   cPrint("current_mode....... " .. current_mode)
 end
 
+local function setup()
+
+  A = minchance - ((maxchance-minchance)/(NBRchance-1))
+  B = vBalance() - limite --it's the part of the scale at stake
+
+  -- Remplis les table selectione les chances
+  for x = 1, NBRchance, 1 do 
+    A         = A + (maxchance-minchance)/(NBRchance-1)
+    Tch[x]    = A -- chance
+    TOver[x]  = 0 -- chaine lose over
+    TUnder[x] = 0 -- chaine lose under
+    TOUMX[x]  = 0 -- plus grande chaine entre over/under
+    Tn[x]     = 0 -- chaine lose min
+    Tsens[x]  = 0 -- mémorise sens de chaque chaine
+  end
+
+--[[ 
+for x=1,NBRchance,1 do --table serie win min
+    if Tch[x]==nil then break end
+    Tn[x]=math.ceil(math.log(1/NBM)/math.log((Tch[x])/100))
+end 
+--]]
+
+  -- table serie lose min
+  for x=1, NBRchance, 1 do 
+    if Tch[x] == nil then break end
+    Tn[x] = math.ceil(math.log(1/NBM) / math.log((100-Tch[x])/100))
+  end
+
+  x = 0
+  bbInitial = bb
+
+end
+
 local function setMode(playMode)
 
   div             = settings[playMode].div
@@ -280,40 +314,6 @@ local function switchMode()
   elseif next_play_mode > 0 then
     setMode(next_play_mode)
   end
-end
-
-local function setup()
-
-  A = minchance - ((maxchance-minchance)/(NBRchance-1))
-  B = vBalance() - limite --it's the part of the scale at stake
-
-  -- Remplis les table selectione les chances
-  for x = 1, NBRchance, 1 do 
-    A         = A + (maxchance-minchance)/(NBRchance-1)
-    Tch[x]    = A -- chance
-    TOver[x]  = 0 -- chaine lose over
-    TUnder[x] = 0 -- chaine lose under
-    TOUMX[x]  = 0 -- plus grande chaine entre over/under
-    Tn[x]     = 0 -- chaine lose min
-    Tsens[x]  = 0 -- mémorise sens de chaque chaine
-  end
-
---[[ 
-for x=1,NBRchance,1 do --table serie win min
-    if Tch[x]==nil then break end
-    Tn[x]=math.ceil(math.log(1/NBM)/math.log((Tch[x])/100))
-end 
---]]
-
-  -- table serie lose min
-  for x=1, NBRchance, 1 do 
-    if Tch[x] == nil then break end
-    Tn[x] = math.ceil(math.log(1/NBM) / math.log((100-Tch[x])/100))
-  end
-
-  x = 0
-  bbInitial = bb
-
 end
 
 function increase_adapter()
