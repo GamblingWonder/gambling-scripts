@@ -120,7 +120,7 @@ local settings = {
     bbPreroll          = 0,--bb/2, --pre roll base bet
     NBM                = 95,
     reset_seed_on_goal = true,
-    next_play_mode     = -1 -- -1 to random, 0 - to nothing
+    next_play_mode     = 0 -- -1 to random
   }
 }
 ------------------------------------------------------------------------------------

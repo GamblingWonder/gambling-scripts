@@ -1,3 +1,7 @@
 # gambling-scripts
 
-#Dicebot scripts
+# Dicebot scripts
+
+
+
+# Formulas
